@@ -2,61 +2,53 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 from sqlalchemy import create_engine
-from time import sleep
-from datetime import datetime
+import sqlite3
 
-# Define the URL you want to scrape
-base_url = 'https://www.sreality.cz'
+BASE_URL = "https://www.sreality.cz"
+SEARCH_URL = "/hledani/prodej/byty/praha?strana="
 
-# Replace these with the appropriate search parameters
-search_url = f'{base_url}/search?category_main_cb=1&category_type_cb=1&region=nazev'
-
-# Define the function to scrape property listings from a single page
-def scrape_page(url):
+def get_property_links(page_number):
+    url = f"{BASE_URL}{SEARCH_URL}{page_number}"
     response = requests.get(url)
-    soup = BeautifulSoup(response.content, 'html.parser')
-    properties = soup.find_all('div', class_='property')
+    soup = BeautifulSoup(response.text, "html.parser")
+    property_links = [a['href'] for a in soup.select('.property a')]
+    return property_links
 
-    property_list = []
+def get_property_details(link):
+    response = requests.get(f"{BASE_URL}{link}")
+    soup = BeautifulSoup(response.text, "html.parser")
+    
+    price = soup.select_one('.norm-price').text.strip()
+    title = soup.select_one('h1').text.strip()
+    address = soup.select_one('.locality').text.strip()
+    
+    details = soup.select_one('.params-list').find_all('li')
+    detail_dict = {}
+    for detail in details:
+        key, value = [item.strip() for item in detail.text.split(':', 1)]
+        detail_dict[key] = value
 
-    for prop in properties:
-        title = prop.find('span', class_='title').text.strip()
-        link = base_url + prop.find('a')['href']
-        price = prop.find('span', class_='cena').text.strip()
+    detail_dict['title'] = title
+    detail_dict['price'] = price
+    detail_dict['address'] = address
+    detail_dict['link'] = f"{BASE_URL}{link}"
+    
+    return detail_dict
 
-        property_list.append({
-            'title': title,
-            'link': link,
-            'price': price
-        })
+def main():
+    # Scrape property listings
+    all_properties = []
+    for i in range(1, 3):  # Change the range as needed (e.g., `range(1, 101)` for 100 pages)
+        property_links = get_property_links(i)
+        for link in property_links:
+            property_details = get_property_details(link)
+            all_properties.append(property_details)
+            print(f"Scraped: {property_details['title']}")
 
-    return property_list
+    # Save data to a SQLite database
+    df = pd.DataFrame(all_properties)
+    engine = create_engine('sqlite:///property_listings.db')
+    df.to_sql('property_listings', engine, if_exists='replace', index=False)
 
-# Define the function to scrape multiple pages of property listings
-def scrape_sreality(search_url):
-    property_data = []
-    current_page = 1
-
-    while True:
-        print(f'Scraping page {current_page}...')
-        url = f'{search_url}&strana={current_page}'
-        properties = scrape_page(url)
-        if not properties:
-            break
-
-        property_data.extend(properties)
-        current_page += 1
-        sleep(1)
-
-    return property_data
-
-# Define the function to save data into a database
-def save_to_database(data, db_name):
-    df = pd.DataFrame(data)
-    engine = create_engine(f'sqlite:///{db_name}.db')
-    df.to_sql('properties', engine, if_exists='append', index=False)
-
-# Scrape property listings and save them to a database
-property_data = scrape_sreality(search_url)
-db_name = f'sreality_{datetime.now().strftime("%Y%m%d")}'
-save_to_database(property_data, db_name)
+if __name__ == "__main__":
+    main()
