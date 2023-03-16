@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 from sqlalchemy import create_engine
 import sqlite3
+from datetime import datetime
 
 BASE_URL = "https://www.sreality.cz"
 SEARCH_URL = "/hledani/prodej/byty/praha?strana="
@@ -32,6 +33,7 @@ def get_property_details(link):
     detail_dict['price'] = price
     detail_dict['address'] = address
     detail_dict['link'] = f"{BASE_URL}{link}"
+    detail_dict['scraped_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     
     return detail_dict
 
@@ -47,8 +49,8 @@ def main():
 
     # Save data to a SQLite database
     df = pd.DataFrame(all_properties)
-    engine = create_engine('sqlite:///property_listings.db')
-    df.to_sql('property_listings', engine, if_exists='replace', index=False)
+    engine = create_engine('sqlite:///data/property_listings.db')
+    df.to_sql('property_listings', engine, if_exists='append', index=False)
 
 if __name__ == "__main__":
     main()
