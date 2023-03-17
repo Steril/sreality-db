@@ -3,14 +3,25 @@ from bs4 import BeautifulSoup
 import sqlite3
 import logging
 from datetime import datetime
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 
 # Set up logging
 logging.basicConfig(filename='scraper.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def scrape_sreality(url):
     try:
-        response = requests.get(url)
-        soup = BeautifulSoup(response.text, 'lxml')
+        chrome_options = Options()
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--disable-gpu')
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+
+        browser = webdriver.Chrome(chrome_options=chrome_options)
+        browser.get(url)
+
+        soup = BeautifulSoup(browser.page_source, 'lxml')
+        browser.quit()
 
         property_listings = []
 
@@ -36,8 +47,7 @@ def scrape_sreality(url):
     except Exception as e:
         logging.error(f"Error scraping sreality.cz: {e}")
         return []
-
-
+    
 def save_to_db(property_listings):
     try:
         conn = sqlite3.connect('/root/sreality-db/app/sreality_db.sqlite3')
