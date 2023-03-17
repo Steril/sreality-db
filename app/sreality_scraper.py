@@ -6,7 +6,8 @@ import sqlite3
 import datetime
 import logging
 
-logging.basicConfig(filename='/root/sreality-db/app/scraper.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename='/root/sreality-db/app/scraper.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s', filemode='w')
+
 
 chrome_options = Options()
 chrome_options.binary_location = "/usr/bin/chromium-browser"
