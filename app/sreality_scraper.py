@@ -14,11 +14,11 @@ def scrape_sreality(url):
 
         property_listings = []
 
-        for listing in soup.find_all('div', class_='property'):
+        for listing in soup.find_all('div', class_='sc-1o2d7zj-2'):
             try:
-                title = listing.find('div', class_='property__name').get_text(strip=True)
-                price = listing.find('span', class_='property__price').get_text(strip=True)
-                location = listing.find('div', class_='property__location').get_text(strip=True)
+                title = listing.find('h2', class_='sc-1o2d7zj-3').get_text(strip=True)
+                price = listing.find('div', class_='sc-1o2d7zj-7').get_text(strip=True)
+                location = listing.find('span', class_='sc-1o2d7zj-5').get_text(strip=True)
 
                 property_listings.append({
                     'title': title,
