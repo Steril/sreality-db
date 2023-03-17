@@ -5,7 +5,7 @@ import logging
 from datetime import datetime
 
 # Set up logging
-logging.basicConfig(filename='scraper.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename='app/scraper.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def scrape_sreality(url):
     try:
@@ -40,7 +40,7 @@ def scrape_sreality(url):
 
 def save_to_db(property_listings):
     try:
-        conn = sqlite3.connect('/root/sreality-db/sreality_db.sqlite3')
+        conn = sqlite3.connect('/root/sreality-db/app/sreality_db.sqlite3')
         cursor = conn.cursor()
 
         cursor.execute('''CREATE TABLE IF NOT EXISTS properties
