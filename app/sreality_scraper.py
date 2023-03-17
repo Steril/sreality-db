@@ -49,51 +49,34 @@ def insert_property_listing(listing_data):
     conn.close()
 
 def scrape_sreality(base_url):
-    listings_saved = 0
-    page_num = 1
-    has_next_page = True
-
-    while has_next_page:
-        print(f"Scraping page {page_num}")
-        url = f"{base_url}?strana={page_num}"
-        logging.info(f"Started scraping {url}")
-        try:
-            driver = webdriver.Chrome(options=chrome_options)
-            driver.get(url)
-
-            soup = BeautifulSoup(driver.page_source, 'lxml')
-            driver.quit()
-
-            property_listings = soup.find_all('div', class_='tile')
-
-            for listing in property_listings:
-                title = listing.find('div', class_='tile-title').text.strip()
-                price = listing.find('span', class_='price').text.strip()
-                location = listing.find('div', class_='tile-address').text.strip()
-                size = listing.find('div', class_='tile-desc').text.strip()
-                description = listing.find('div', class_='tile-text').text.strip()
-                url = "https://www.sreality.cz" + listing.find('a')['href']
-                date_scraped = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-                listing_data = (title, price, location, size, description, url, date_scraped)
-                insert_property_listing(listing_data)
-                listings_saved += 1
-
-            logging.info(f"{listings_saved} property listings saved to the database")
-            logging.info(f"Finished scraping {url}")
-
-            # Check if there is a next page
-            next_page = soup.find("a", class_="m-pagination__item m-pagination__item--next")
-            if next_page:
-                page_num += 1  # Increment the page number if there is a next page
-            else:
-                has_next_page = False  # Set to False if there is no next page
-
-        except Exception as e:
-            logging.error(f"Error scraping {url}: {e}")
-            has_next_page = False  # Exit the loop if an error occurs
-
-
+    current_page = 1
+    while True:
+        logging.info(f"Scraping page {current_page}")
+        url = f"{base_url}?strana={current_page}"
+        
+        response = send_request(url)
+        if response is None:
+            logging.error(f"Error scraping {url}: request failed")
+            continue
+        
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        property_listings = soup.find_all('div', class_='property')
+        if not property_listings:
+            logging.error(f"Error scraping {url}: no property listings found")
+            break
+        
+        for property_div in property_listings:
+            property_url = "https://www.sreality.cz" + property_div.find('a')['href']
+            property_details = scrape_property_details(property_url)
+            if property_details is not None:
+                save_property_listing(property_details)
+        
+        next_page = soup.find('a', class_='next')
+        if next_page is None:
+            break
+        
+        current_page += 1
 
 
 if __name__ == "__main__":
