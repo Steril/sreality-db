@@ -48,13 +48,14 @@ def insert_property_listing(listing_data):
     conn.commit()
     conn.close()
 
-def scrape_sreality(url):
+def scrape_sreality(base_url):
     listings_saved = 0
     page_num = 1
     more_pages = True
 
     while more_pages:
         print(f"Scraping page {page_num}")
+        url = f"{base_url}?strana={page_num}"
         logging.info(f"Started scraping {url}")
         try:
             driver = webdriver.Chrome(options=chrome_options)
@@ -86,7 +87,6 @@ def scrape_sreality(url):
             if next_page:
                 more_pages = True
                 page_num += 1  # Increment the page_num variable
-                url = f"{url.split('?')[0]}?strana={page_num}"  # Update the URL with the new page number
             else:
                 more_pages = False
 
