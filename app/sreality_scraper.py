@@ -1,83 +1,64 @@
 import requests
 from bs4 import BeautifulSoup
-import sqlite3
-import logging
-from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+import sqlite3
+import datetime
+import logging
 
-# Set up logging
-logging.basicConfig(filename='scraper.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename='/root/sreality-db/app/scraper.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-def scrape_sreality(url):
-    try:
-        chrome_options = Options()
+chrome_options = Options()
 chrome_options.binary_location = "/usr/bin/chromium-browser"
 chrome_options.add_argument('--headless')
 chrome_options.add_argument('--disable-gpu')
 chrome_options.add_argument('--no-sandbox')
 chrome_options.add_argument('--disable-dev-shm-usage')
 
+url = "https://www.sreality.cz/hledani/prodej"
 
-        browser = webdriver.Chrome(chrome_options=chrome_options)
-        browser.get(url)
+def insert_property_listing(listing_data):
+    conn = sqlite3.connect('/root/sreality-db/sreality_db.sqlite3')
+    cursor = conn.cursor()
 
-        soup = BeautifulSoup(browser.page_source, 'lxml')
-        browser.quit()
+    cursor.execute("""
+        INSERT INTO property_listings (title, price, location, size, description, url, date_scraped)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, listing_data)
 
-        property_listings = []
+    conn.commit()
+    conn.close()
 
-        for listing in soup.find_all('div', class_='sc-1o2d7zj-2'):
-            try:
-                title = listing.find('h2', class_='sc-1o2d7zj-3').get_text(strip=True)
-                price = listing.find('div', class_='sc-1o2d7zj-7').get_text(strip=True)
-                location = listing.find('span', class_='sc-1o2d7zj-5').get_text(strip=True)
+def scrape_sreality():
+    listings_saved = 0
+    logging.info("Started scraping")
+    try:
+        driver = webdriver.Chrome(options=chrome_options)
+        driver.get(url)
 
-                property_listings.append({
-                    'title': title,
-                    'price': price,
-                    'location': location,
-                    'scraping_timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                })
+        soup = BeautifulSoup(driver.page_source, 'lxml')
+        driver.quit()
 
-            except AttributeError:
-                logging.error(f"Error processing listing: {listing}")
-                continue
+        property_listings = soup.find_all('div', class_='tile')
 
-        return property_listings
+        for listing in property_listings:
+            title = listing.find('div', class_='tile-title').text.strip()
+            price = listing.find('span', class_='price').text.strip()
+            location = listing.find('div', class_='tile-address').text.strip()
+            size = listing.find('div', class_='tile-desc').text.strip()
+            description = listing.find('div', class_='tile-text').text.strip()
+            url = "https://www.sreality.cz" + listing.find('a')['href']
+            date_scraped = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+            listing_data = (title, price, location, size, description, url, date_scraped)
+            insert_property_listing(listing_data)
+            listings_saved += 1
+
+        logging.info(f"{listings_saved} property listings saved to the database")
+        logging.info("Finished scraping")
 
     except Exception as e:
         logging.error(f"Error scraping sreality.cz: {e}")
-        return []
-    
-def save_to_db(property_listings):
-    try:
-        conn = sqlite3.connect('/root/sreality-db/app/sreality_db.sqlite3')
-        cursor = conn.cursor()
-
-        cursor.execute('''CREATE TABLE IF NOT EXISTS properties
-                          (id INTEGER PRIMARY KEY, title TEXT, price TEXT, location TEXT, scraping_timestamp TEXT)''')
-
-        for property_listing in property_listings:
-            cursor.execute("INSERT INTO properties (title, price, location, scraping_timestamp) VALUES (?, ?, ?, ?)",
-                           (property_listing['title'], property_listing['price'], property_listing['location'], property_listing['scraping_timestamp']))
-
-        conn.commit()
-        conn.close()
-
-        logging.info(f"{len(property_listings)} property listings saved to the database")
-
-    except Exception as e:
-        logging.error(f"Error saving data to the database: {e}")
-
-
-def main():
-    logging.info("Started scraping")
-    url = "https://www.sreality.cz/search?category_type_cb=1&per_page=50&region=1&subregion=1&radius=0&price_from=0&price_to=0&years_from=0&years_to=0&building_age=0&sort=0&hideRegions=0&hideHigherPrague=0&estatetype=1&layout=0&ownership=0&building_type=0&condition=0&floor_area=0&usable_area=0&land_area=0&cellar=0&balcony=0&terrace=0&garage=0&parking=0&garden=0&pool=0&lift=0&barrier_free=0&energy_efficiency=0"
-    property_listings = scrape_sreality(url)
-    save_to_db(property_listings)
-    logging.info("Finished scraping")
-
 
 if __name__ == "__main__":
-    main()
+    scrape_sreality()
