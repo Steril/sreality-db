@@ -38,18 +38,44 @@ def scrape_sreality(url):
         soup = BeautifulSoup(driver.page_source, 'lxml')
         driver.quit()
 
-        property_listings = soup.find_all('div', class_='tile')
+        property_listings = soup.find_all('div', class_='property')
 
         for listing in property_listings:
-            title = listing.find('div', class_='tile-title').text.strip()
-            price = listing.find('span', class_='price').text.strip()
-            location = listing.find('div', class_='tile-address').text.strip()
-            size = listing.find('div', class_='tile-desc').text.strip()
-            description = listing.find('div', class_='tile-text').text.strip()
+            title_and_location = listing.select_one('.property-title .name')
+            if title_and_location:
+                title_and_location = title_and_location.get_text(strip=True)
+            else:
+                title_and_location = "N/A"
+
+            price = listing.select_one('.price .norm-price')
+            if price:
+                price = price.get_text(strip=True)
+            else:
+                price = "N/A"
+
+            location = listing.select_one('.property-title .location-text')
+            if location:
+                location = location.get_text(strip=True)
+            else:
+                location = "N/A"
+
+            size = listing.select_one('.property-title .location-text')
+            if size:
+                size = size.get_text(strip=True)
+            else:
+                size = "N/A"
+
+            # Since there's no description field in the provided HTML, I'm using the energy efficiency text as a placeholder
+            description = listing.select_one('.energy-efficiency-rating__text')
+            if description:
+                description = description.get_text(strip=True)
+            else:
+                description = "N/A"
+
             url = "https://www.sreality.cz" + listing.find('a')['href']
             date_scraped = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            listing_data = (title, price, location, size, description, url, date_scraped)
+            listing_data = (title_and_location, price, location, size, description, url, date_scraped)
             insert_property_listing(listing_data)
             listings_saved += 1
 
