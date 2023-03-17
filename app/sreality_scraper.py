@@ -50,9 +50,10 @@ def insert_property_listing(listing_data):
 
 def scrape_sreality(base_url):
     listings_saved = 0
-    max_pages = 1000  # Maximum number of pages to scrape
+    page_num = 1
+    has_next_page = True
 
-    for page_num in range(1, max_pages + 1):
+    while has_next_page:
         print(f"Scraping page {page_num}")
         url = f"{base_url}?strana={page_num}"
         logging.info(f"Started scraping {url}")
@@ -83,12 +84,15 @@ def scrape_sreality(base_url):
 
             # Check if there is a next page
             next_page = soup.find("a", class_="m-pagination__item m-pagination__item--next")
-            if not next_page:
-                break  # Exit the loop if there is no next page
+            if next_page:
+                page_num += 1  # Increment the page number if there is a next page
+            else:
+                has_next_page = False  # Set to False if there is no next page
 
         except Exception as e:
             logging.error(f"Error scraping {url}: {e}")
-            break  # Exit the loop if an error occurs
+            has_next_page = False  # Exit the loop if an error occurs
+
 
 
 
