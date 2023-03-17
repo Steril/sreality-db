@@ -15,8 +15,6 @@ chrome_options.add_argument('--disable-gpu')
 chrome_options.add_argument('--no-sandbox')
 chrome_options.add_argument('--disable-dev-shm-usage')
 
-url = "https://www.sreality.cz/hledani/prodej"
-
 def insert_property_listing(listing_data):
     conn = sqlite3.connect('/root/sreality-db/sreality_db.sqlite3')
     cursor = conn.cursor()
@@ -29,9 +27,9 @@ def insert_property_listing(listing_data):
     conn.commit()
     conn.close()
 
-def scrape_sreality():
+def scrape_sreality(url):
     listings_saved = 0
-    logging.info("Started scraping")
+    logging.info(f"Started scraping {url}")
     try:
         driver = webdriver.Chrome(options=chrome_options)
         driver.get(url)
@@ -55,10 +53,16 @@ def scrape_sreality():
             listings_saved += 1
 
         logging.info(f"{listings_saved} property listings saved to the database")
-        logging.info("Finished scraping")
+        logging.info(f"Finished scraping {url}")
 
     except Exception as e:
-        logging.error(f"Error scraping sreality.cz: {e}")
+        logging.error(f"Error scraping {url}: {e}")
 
 if __name__ == "__main__":
-    scrape_sreality()
+    urls_to_scrape = [
+        "https://www.sreality.cz/hledani/prodej/domy",
+        "https://www.sreality.cz/hledani/prodej/byty"
+    ]
+
+    for url in urls_to_scrape:
+        scrape_sreality(url)
