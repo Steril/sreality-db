@@ -56,7 +56,7 @@ def scrape_sreality(url):
         driver.get(url)
 
         soup = BeautifulSoup(driver.page_source, 'lxml')
-        print(soup.prettify())
+        #print(soup.prettify())
         driver.quit()
 
         property_listings = soup.find_all('div', class_='property')
