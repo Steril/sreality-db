@@ -48,47 +48,41 @@ def insert_property_listing(listing_data):
     conn.commit()
     conn.close()
 
-def scrape_sreality(url):
+def scrape_sreality(url, num_pages=10):
     listings_saved = 0
-    logging.info(f"Started scraping {url}")
-    try:
-        driver = webdriver.Chrome(options=chrome_options)
-        driver.get(url)
 
-        soup = BeautifulSoup(driver.page_source, 'lxml')
-        driver.quit()
+    for page_num in range(1, num_pages + 1):
+        page_url = f"{url}?strana={page_num}"
+        logging.info(f"Started scraping {page_url}")
 
-        property_listings = soup.find_all('div', class_='property')
+        try:
+            driver = webdriver.Chrome(options=chrome_options)
+            driver.get(page_url)
 
-        for listing in property_listings:
-            title_element = listing.find('span', class_='name ng-binding')
-            title = title_element.text.strip() if title_element else None
+            soup = BeautifulSoup(driver.page_source, 'lxml')
+            driver.quit()
 
-            price_element = listing.find('span', class_='norm-price')
-            price = price_element.text.strip() if price_element else None
+            property_listings = soup.find_all('div', class_='tile')
 
-            location_element = listing.find('span', class_='location-text ng-binding')
-            location = location_element.text.strip() if location_element else None
+            for listing in property_listings:
+                title = listing.find('div', class_='tile-title').text.strip()
+                price = listing.find('span', class_='price').text.strip()
+                location = listing.find('div', class_='tile-address').text.strip()
+                size = listing.find('div', class_='tile-desc').text.strip()
+                description = listing.find('div', class_='tile-text').text.strip()
+                url = "https://www.sreality.cz" + listing.find('a')['href']
+                date_scraped = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            if title:
-                size = title.split(' ')[-2]
-            else:
-                size = None
+                listing_data = (title, price, location, size, description, url, date_scraped)
+                insert_property_listing(listing_data)
+                listings_saved += 1
 
-            description = ''
-            url_element = listing.find('a')
-            url = "https://www.sreality.cz" + url_element['href'] if url_element else None
-            date_scraped = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            logging.info(f"{listings_saved} property listings saved to the database")
+            logging.info(f"Finished scraping {page_url}")
 
-            listing_data = (title, price, location, size, description, url, date_scraped)
-            insert_property_listing(listing_data)
-            listings_saved += 1
+        except Exception as e:
+            logging.error(f"Error scraping {page_url}: {e}")
 
-        logging.info(f"{listings_saved} property listings saved to the database")
-        logging.info(f"Finished scraping {url}")
-
-    except Exception as e:
-        logging.error(f"Error scraping {url}: {e}")
 
 if __name__ == "__main__":
     logging.info("Starting scraper")
