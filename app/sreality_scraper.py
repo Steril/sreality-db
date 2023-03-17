@@ -57,18 +57,29 @@ def scrape_sreality(url):
         driver.get(url)
 
         soup = BeautifulSoup(driver.page_source, 'lxml')
-        #print(soup.prettify())
         driver.quit()
 
         property_listings = soup.find_all('div', class_='property')
 
         for listing in property_listings:
-            title = listing.find('div', class_='tile-title').text.strip()
-            price = listing.find('span', class_='price').text.strip()
-            location = listing.find('div', class_='tile-address').text.strip()
-            size = listing.find('div', class_='tile-desc').text.strip()
-            description = listing.find('div', class_='tile-text').text.strip()
-            url = "https://www.sreality.cz" + listing.find('a')['href']
+            title_element = listing.find('div', class_='tile-title')
+            title = title_element.text.strip() if title_element else ""
+
+            price_element = listing.find('span', class_='price')
+            price = price_element.text.strip() if price_element else ""
+
+            location_element = listing.find('div', class_='tile-address')
+            location = location_element.text.strip() if location_element else ""
+
+            size_element = listing.find('div', class_='tile-desc')
+            size = size_element.text.strip() if size_element else ""
+
+            description_element = listing.find('div', class_='tile-text')
+            description = description_element.text.strip() if description_element else ""
+
+            url_element = listing.find('a')
+            url = "https://www.sreality.cz" + url_element['href'] if url_element else ""
+
             date_scraped = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
             listing_data = (title, price, location, size, description, url, date_scraped)
@@ -84,10 +95,3 @@ def scrape_sreality(url):
 if __name__ == "__main__":
     create_property_listings_table()
 
-    urls_to_scrape = [
-        "https://www.sreality.cz/hledani/prodej/domy",
-        "https://www.sreality.cz/hledani/prodej/byty"
-    ]
-
-    for url in urls_to_scrape:
-        scrape_sreality(url)
