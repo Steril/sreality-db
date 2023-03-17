@@ -48,21 +48,26 @@ def insert_property_listing(listing_data):
     conn.commit()
     conn.close()
 
-def scrape_sreality(url, num_pages=10):
+def scrape_sreality(url):
     listings_saved = 0
+    page_num = 1
+    more_pages = True
 
-    for page_num in range(1, num_pages + 1):
-        page_url = f"{url}?strana={page_num}"
-        logging.info(f"Started scraping {page_url}")
-
+    while more_pages:
+        logging.info(f"Started scraping {url}")
         try:
+            current_url = f"{url}?strana={page_num}"
             driver = webdriver.Chrome(options=chrome_options)
-            driver.get(page_url)
+            driver.get(current_url)
 
             soup = BeautifulSoup(driver.page_source, 'lxml')
             driver.quit()
 
             property_listings = soup.find_all('div', class_='tile')
+
+            if not property_listings:
+                more_pages = False
+                continue
 
             for listing in property_listings:
                 title = listing.find('div', class_='tile-title').text.strip()
@@ -78,10 +83,14 @@ def scrape_sreality(url, num_pages=10):
                 listings_saved += 1
 
             logging.info(f"{listings_saved} property listings saved to the database")
-            logging.info(f"Finished scraping {page_url}")
+            logging.info(f"Finished scraping {url}")
+
+            time.sleep(5)  # Wait for 5 seconds between requests
+            page_num += 1
 
         except Exception as e:
-            logging.error(f"Error scraping {page_url}: {e}")
+            logging.error(f"Error scraping {url}: {e}")
+            more_pages = False
 
 
 if __name__ == "__main__":
