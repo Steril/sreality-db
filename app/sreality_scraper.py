@@ -54,7 +54,7 @@ def scrape_sreality(base_url):
         logging.info(f"Scraping page {current_page}")
         url = f"{base_url}?strana={current_page}"
         
-        response = send_request(url)
+        response = send_get_request(url)
         if response is None:
             logging.error(f"Error scraping {url}: request failed")
             continue
