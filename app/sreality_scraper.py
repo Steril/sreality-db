@@ -58,7 +58,7 @@ def scrape_sreality(url):
         soup = BeautifulSoup(driver.page_source, 'lxml')
         driver.quit()
 
-        property_listings = soup.find_all('div', class_='tile')
+       property_listings = soup.find_all('div', class_='property')
 
         for listing in property_listings:
             title = listing.find('span', class_='name ng-binding')
