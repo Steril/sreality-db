@@ -2,6 +2,10 @@ import requests
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 import sqlite3
 import datetime
 import logging
@@ -47,6 +51,16 @@ def insert_property_listing(listing_data):
 
     conn.commit()
     conn.close()
+
+def send_get_request(url):
+    with webdriver.Remote(
+        command_executor=selenium_grid_url,
+        desired_capabilities=webdriver.DesiredCapabilities.CHROME,
+    ) as driver:
+        driver.get(url)
+        page_source = driver.page_source
+    return page_source
+
 
 def scrape_sreality(base_url):
     current_page = 1
