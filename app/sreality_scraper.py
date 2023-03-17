@@ -54,6 +54,7 @@ def scrape_sreality(url):
     more_pages = True
 
     while more_pages:
+        print(f"Scraping page {page_num}")
         logging.info(f"Started scraping {url}")
         try:
             current_url = f"{url}?strana={page_num}"
