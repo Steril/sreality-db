@@ -56,26 +56,21 @@ def scrape_sreality(url):
         driver.get(url)
 
         soup = BeautifulSoup(driver.page_source, 'lxml')
+        print(soup.prettify())
         driver.quit()
 
-       property_listings = soup.find_all('div', class_='property')
+        property_listings = soup.find_all('div', class_='property')
 
         for listing in property_listings:
-            title = listing.find('span', class_='name ng-binding')
-            price = listing.find('strong', class_='ng-binding')
-            location = listing.find('span', class_='location-text ng-binding')
+            title = listing.find('div', class_='tile-title').text.strip()
+            price = listing.find('span', class_='price').text.strip()
+            location = listing.find('div', class_='tile-address').text.strip()
             size = listing.find('div', class_='tile-desc').text.strip()
             description = listing.find('div', class_='tile-text').text.strip()
             url = "https://www.sreality.cz" + listing.find('a')['href']
             date_scraped = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            listing_data = (title.text.strip() if title else None,
-                            price.text.strip() if price else None,
-                            location.text.strip() if location else None,
-                            size,
-                            description,
-                            url,
-                            date_scraped)
+            listing_data = (title, price, location, size, description, url, date_scraped)
             insert_property_listing(listing_data)
             listings_saved += 1
 
