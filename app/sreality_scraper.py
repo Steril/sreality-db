@@ -57,18 +57,13 @@ def scrape_sreality(url):
         print(f"Scraping page {page_num}")
         logging.info(f"Started scraping {url}")
         try:
-            current_url = f"{url}?strana={page_num}"
             driver = webdriver.Chrome(options=chrome_options)
-            driver.get(current_url)
+            driver.get(url)
 
             soup = BeautifulSoup(driver.page_source, 'lxml')
             driver.quit()
 
             property_listings = soup.find_all('div', class_='tile')
-
-            if not property_listings:
-                more_pages = False
-                continue
 
             for listing in property_listings:
                 title = listing.find('div', class_='tile-title').text.strip()
@@ -86,8 +81,14 @@ def scrape_sreality(url):
             logging.info(f"{listings_saved} property listings saved to the database")
             logging.info(f"Finished scraping {url}")
 
-            time.sleep(5)  # Wait for 5 seconds between requests
-            page_num += 1
+            # Check if there is a next page
+            next_page = soup.find("a", class_="m-pagination__item m-pagination__item--next")
+            if next_page:
+                more_pages = True
+                page_num += 1  # Increment the page_num variable
+                url = f"{url.split('?')[0]}?strana={page_num}"  # Update the URL with the new page number
+            else:
+                more_pages = False
 
         except Exception as e:
             logging.error(f"Error scraping {url}: {e}")
