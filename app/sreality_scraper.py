@@ -16,6 +16,26 @@ chrome_options.add_argument('--no-sandbox')
 chrome_options.add_argument('--disable-dev-shm-usage')
 chrome_options.add_argument('--remote-debugging-port=9222')
 
+def create_property_listings_table():
+    conn = sqlite3.connect('/root/sreality-db/sreality_db.sqlite3')
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS property_listings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT,
+            price TEXT,
+            location TEXT,
+            size TEXT,
+            description TEXT,
+            url TEXT,
+            date_scraped TEXT
+        )
+    """)
+
+    conn.commit()
+    conn.close()
+
 def insert_property_listing(listing_data):
     conn = sqlite3.connect('/root/sreality-db/sreality_db.sqlite3')
     cursor = conn.cursor()
@@ -38,44 +58,18 @@ def scrape_sreality(url):
         soup = BeautifulSoup(driver.page_source, 'lxml')
         driver.quit()
 
-        property_listings = soup.find_all('div', class_='property')
+        property_listings = soup.find_all('div', class_='tile')
 
         for listing in property_listings:
-            title_and_location = listing.select_one('.property-title .name')
-            if title_and_location:
-                title_and_location = title_and_location.get_text(strip=True)
-            else:
-                title_and_location = "N/A"
-
-            price = listing.select_one('.price .norm-price')
-            if price:
-                price = price.get_text(strip=True)
-            else:
-                price = "N/A"
-
-            location = listing.select_one('.property-title .location-text')
-            if location:
-                location = location.get_text(strip=True)
-            else:
-                location = "N/A"
-
-            size = listing.select_one('.property-title .location-text')
-            if size:
-                size = size.get_text(strip=True)
-            else:
-                size = "N/A"
-
-            # Since there's no description field in the provided HTML, I'm using the energy efficiency text as a placeholder
-            description = listing.select_one('.energy-efficiency-rating__text')
-            if description:
-                description = description.get_text(strip=True)
-            else:
-                description = "N/A"
-
+            title = listing.find('div', class_='tile-title').text.strip()
+            price = listing.find('span', class_='price').text.strip()
+            location = listing.find('div', class_='tile-address').text.strip()
+            size = listing.find('div', class_='tile-desc').text.strip()
+            description = listing.find('div', class_='tile-text').text.strip()
             url = "https://www.sreality.cz" + listing.find('a')['href']
             date_scraped = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            listing_data = (title_and_location, price, location, size, description, url, date_scraped)
+            listing_data = (title, price, location, size, description, url, date_scraped)
             insert_property_listing(listing_data)
             listings_saved += 1
 
@@ -86,6 +80,8 @@ def scrape_sreality(url):
         logging.error(f"Error scraping {url}: {e}")
 
 if __name__ == "__main__":
+    create_property_listings_table()
+
     urls_to_scrape = [
         "https://www.sreality.cz/hledani/prodej/domy",
         "https://www.sreality.cz/hledani/prodej/byty"
