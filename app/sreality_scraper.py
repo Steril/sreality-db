@@ -61,12 +61,23 @@ def scrape_sreality(url):
         property_listings = soup.find_all('div', class_='property')
 
         for listing in property_listings:
-            title = listing.find('span', class_='name ng-binding').text.strip()
-            price = listing.find('span', class_='norm-price').text.strip()
-            location = listing.find('span', class_='location-text ng-binding').text.strip()
-            size = listing.find('span', class_='name ng-binding').text.strip().split(' ')[-2]
+            title_element = listing.find('span', class_='name ng-binding')
+            title = title_element.text.strip() if title_element else None
+
+            price_element = listing.find('span', class_='norm-price')
+            price = price_element.text.strip() if price_element else None
+
+            location_element = listing.find('span', class_='location-text ng-binding')
+            location = location_element.text.strip() if location_element else None
+
+            if title:
+                size = title.split(' ')[-2]
+            else:
+                size = None
+
             description = ''
-            url = "https://www.sreality.cz" + listing.find('a')['href']
+            url_element = listing.find('a')
+            url = "https://www.sreality.cz" + url_element['href'] if url_element else None
             date_scraped = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
             listing_data = (title, price, location, size, description, url, date_scraped)
